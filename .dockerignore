@@ -1,0 +1,14 @@
+# Desenler bağlam KÖKÜNE göre eşleşir: "obj/" yalnız ./obj'u dışlar, her projenin
+# altındaki StarCAD.*/obj'u DIŞLAMAZ. İç içe klasör için "**/" şart.
+**/bin/
+**/obj/
+.git/
+.gitignore
+.idea/
+.vs/
+.claude/
+**/*.user
+**/*.suo
+README.md
+docker-compose.yml
+**/appsettings.Development.json

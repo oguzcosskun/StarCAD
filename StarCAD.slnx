@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="StarCAD.Api/StarCAD.Api.csproj" />
+  <Project Path="StarCAD.Business/StarCAD.Business.csproj" />
+  <Project Path="StarCAD.Common/StarCAD.Common.csproj" />
+  <Project Path="StarCAD.Core/StarCAD.Core.csproj" />
+  <Project Path="StarCAD.DataAccess/StarCAD.DataAccess.csproj" />
+  <Project Path="StarCAD.Entity/StarCAD.Entity.csproj" />
+  <Project Path="StarCAD.Tests/StarCAD.Tests.csproj" />
+  <Project Path="StarCAD.ViewModel/StarCAD.ViewModel.csproj" />
+</Solution>

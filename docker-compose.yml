@@ -1,0 +1,130 @@
+# Frontend (cadui) burada DEĞİL: `npm run dev` ile yerelde koşar, API'ye VITE_API_URL ile bakar.
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: starcad-sqlserver
+    platform: linux/amd64          # Apple Silicon (M1/M2/M3) Mac için ŞART
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "StarCAD_Local_123!"   # sadece yerel dev; prod'da env/CI variable
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: starcad-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      # MinIO YAYINLANAN portu bilmez; 9000/9001 onun konteyner içi portları. Bunlar
+      # verilmezse tarayıcıyı kendi iç portuna yönlendirir (29000 → 9000) ve bağlantı düşer.
+      # PUBLIC_HOST = tarayıcının gördüğü host; .env'den gelir, yoksa localhost.
+      MINIO_SERVER_URL: "http://localhost:9000"
+      MINIO_BROWSER_REDIRECT_URL: "http://${PUBLIC_HOST:-localhost}:29001"
+    ports:
+      - "29000:9000"    # S3 API (uygulama buraya bağlanır)
+      - "29001:9001"    # Web konsol → http://localhost:29001
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+  
+  redis:
+    image: redis:latest
+    container_name: starcad-redis
+    ports:
+      - "16379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    restart: unless-stopped
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: starcad-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    container_name: starcad-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    build:
+      # Context repo kökü: API altı kardeş projeye referans veriyor.
+      context: .
+      dockerfile: StarCAD.Api/Dockerfile
+    container_name: starcad-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__StarCADContext: "Server=sqlserver,1433;Database=StarCAD;User Id=sa;Password=StarCAD_Local_123!;TrustServerCertificate=True"
+      MinioSettings__Endpoint: "minio:9000"
+      MinioSettings__PublicEndpoint: "${PUBLIC_HOST:-localhost}:29000"
+      RedisSettings__Endpoint: "redis:6379"
+      ElasticSettings__Endpoint: "http://elasticsearch:9200"
+      JWTAuth__ValidIssuerURL: "http://localhost:5193/"
+      JWTAuth__ValidAudienceURL: "http://localhost:5193/"
+      # TC kimlik şifreleme anahtarları — .env dosyasından (gitignore'lu). base64 32-byte.
+      Encryption__Key: "${ENCRYPTION_KEY}"
+      Encryption__HmacKey: "${ENCRYPTION_HMAC_KEY}"
+    ports:
+      # Host portu launchSettings.json'daki http profiliyle aynı tutuldu: frontend'in
+      # VITE_API_URL'i API ister konteynerde ister `dotnet run` ile koşsun değişmesin.
+      - "5193:8080"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis: 
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mssql-data:
+  minio-data:
+  es-data:

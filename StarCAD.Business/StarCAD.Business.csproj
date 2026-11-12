@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\StarCAD.Core\StarCAD.Core.csproj" />
+    <ProjectReference Include="..\StarCAD.DataAccess\StarCAD.DataAccess.csproj" />
+    <ProjectReference Include="..\StarCAD.Entity\StarCAD.Entity.csproj" />
+    <ProjectReference Include="..\StarCAD.ViewModel\StarCAD.ViewModel.csproj" />
+    <ProjectReference Include="..\StarCAD.Common\StarCAD.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.4.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.11" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
